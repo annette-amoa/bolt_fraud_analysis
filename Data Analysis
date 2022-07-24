@@ -1,0 +1,71 @@
+#Number of failed attempts categorised by device operating system
+WITH FS AS(
+SELECT device_name, device_os_version, country, is_successful_payment, failed_attempts 
+FROM `shining-energy-351412.bolt_fraud.fraud`)
+
+SELECT device_os_version,
+COUNT(failed_attempts) AS attempts_failed,
+FROM FS
+GROUP BY device_os_version
+ORDER BY attempts_failed DESC
+
+
+#Number of failed attempts categorised by devices
+WITH FS AS(
+SELECT device_name, device_os_version, country, is_successful_payment, failed_attempts 
+FROM `shining-energy-351412.bolt_fraud.fraud`)
+
+SELECT device_name,
+COUNT(failed_attempts) AS attempts_failed,
+FROM FS
+GROUP BY device_name
+ORDER BY attempts_failed DESC
+
+
+#Number of failed attempts categorised by country
+WITH FS AS(
+SELECT device_name, device_os_version, country, is_successful_payment, failed_attempts 
+FROM `shining-energy-351412.bolt_fraud.fraud`)
+
+SELECT country,
+COUNT(failed_attempts) AS attempts_failed,
+FROM FS
+GROUP BY country
+ORDER BY attempts_failed DESC
+
+
+#Successful payments grouped by country
+WITH CF AS(
+SELECT 
+country, failed_attempts, is_successful_payment,
+FROM `shining-energy-351412.bolt_fraud.fraud` 
+WHERE is_successful_payment = 1)
+
+SELECT DISTINCT country, SUM(is_successful_payment)
+OVER (
+  PARTITION BY country 
+  ORDER BY is_successful_payment 
+  ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS successful_payments
+FROM CF;
+
+
+#Unsuccessful payments grouped by country
+WITH SF AS(
+SELECT 
+country, failed_attempts, is_successful_payment,
+FROM `shining-energy-351412.bolt_fraud.fraud` 
+WHERE is_successful_payment = 0)
+
+SELECT DISTINCT country, COUNT(is_successful_payment)
+OVER (
+  PARTITION BY country 
+  ORDER BY is_successful_payment 
+  ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS unsuccessful_payments
+FROM SF;
+
+
+#Combination of successful and unsuccessful payments
+SELECT sp.country, successful_payments, unsuccessful_payments
+FROM `bolt_fraud.success_pay` AS sp
+INNER JOIN `bolt_fraud.unsucess_pay` AS unsp
+ON sp.country = unsp.country;
